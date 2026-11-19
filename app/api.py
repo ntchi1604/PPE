@@ -79,6 +79,15 @@ class CameraPatch(BaseModel):
 
 class AckIn(BaseModel):
     by: str = "operator"
+    resolution: str = "confirmed"   # confirmed | false_positive
+    note: str | None = None
+
+
+class BulkAckIn(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+    by: str = "operator"
+    resolution: str = "confirmed"
+    note: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -297,9 +306,19 @@ def create_app(state: dict[str, Any]) -> FastAPI:
 
     @app.post("/api/violations/{vid}/ack")
     def ack_violation(vid: int, body: AckIn = Body(default=AckIn())):
-        db.acknowledge(vid, body.by)
-        bus.publish("ack", {"id": vid, "by": body.by})
+        res = body.resolution if body.resolution in ("confirmed", "false_positive") else "confirmed"
+        note = (body.note or "").strip() or None
+        db.acknowledge(vid, body.by, resolution=res, note=note)
+        bus.publish("ack", {"id": vid, "by": body.by, "resolution": res})
         return {"ok": True}
+
+    @app.post("/api/violations/bulk-ack")
+    def bulk_ack_violations(body: BulkAckIn = Body(...)):
+        res = body.resolution if body.resolution in ("confirmed", "false_positive") else "confirmed"
+        note = (body.note or "").strip() or None
+        count = db.acknowledge_many(body.ids, body.by, resolution=res, note=note)
+        bus.publish("ack", {"ids": body.ids, "by": body.by, "resolution": res})
+        return {"ok": True, "updated": count}
 
     @app.get("/api/stats")
     def stats(hours: float = Query(24.0, ge=0.5, le=24 * 90)):

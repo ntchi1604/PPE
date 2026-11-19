@@ -71,6 +71,12 @@ class Database:
         self._lock = threading.Lock()
         with self._conn() as con:
             con.executescript(SCHEMA)
+            cols = {r["name"] for r in con.execute("PRAGMA table_info(violations)").fetchall()}
+            if "resolution" not in cols:
+                con.execute("ALTER TABLE violations ADD COLUMN resolution TEXT")
+            if "note" not in cols:
+                con.execute("ALTER TABLE violations ADD COLUMN note TEXT")
+            con.commit()
 
     def _conn(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.path, timeout=15.0, check_same_thread=False)
@@ -177,11 +183,40 @@ class Database:
             r["acknowledged"] = bool(r["acknowledged"])
         return rows
 
-    def acknowledge(self, violation_id: int, by: str = "operator") -> None:
+    def acknowledge(
+        self,
+        violation_id: int,
+        by: str = "operator",
+        resolution: str = "confirmed",
+        note: str | None = None,
+    ) -> None:
         self._write(
-            "UPDATE violations SET acknowledged = 1, ack_by = ?, ack_at = ? WHERE id = ?",
-            (by, time.time(), violation_id),
+            "UPDATE violations SET acknowledged = 1, ack_by = ?, ack_at = ?, resolution = ?, note = ? WHERE id = ?",
+            (by, time.time(), resolution, note, violation_id),
         )
+
+    def acknowledge_many(
+        self,
+        violation_ids: list[int],
+        by: str = "operator",
+        resolution: str = "confirmed",
+        note: str | None = None,
+    ) -> int:
+        if not violation_ids:
+            return 0
+        now = time.time()
+        placeholders = ",".join("?" for _ in violation_ids)
+        with self._lock:
+            con = self._conn()
+            try:
+                cur = con.execute(
+                    f"UPDATE violations SET acknowledged = 1, ack_by = ?, ack_at = ?, resolution = ?, note = ? WHERE id IN ({placeholders})",
+                    (by, now, resolution, note, *violation_ids),
+                )
+                con.commit()
+                return cur.rowcount or 0
+            finally:
+                con.close()
 
     def violation_counts(self, since: float) -> list[dict]:
         return self._rows(
