@@ -3,15 +3,23 @@
 Giám sát camera công trường theo thời gian thực, phát hiện người lao động không
 đeo đủ trang thiết bị bảo hộ (PPE), lưu bằng chứng và phát cảnh báo đa kênh.
 
-**Model:** YOLOv8 (19 lớp, huấn luyện cho công trường) — nhận diện được
-`Worker`, `Hard_hat`, `No-Helmet`, `Vest`, `No-Vest`, `Glove`, `No-Glove`,
-`Boots`, `No-Boots`, `Mask`, `No-Mask`, `Glass`, `No-Glass`,
-`Ear-Protection`, `No-Ear-Protection` cùng 4 thiết bị công trường khác.
+**Model:** YOLOv8s huấn luyện trên **Ultralytics Construction-PPE** (11/2026, CC BY 4.0,
+1.000 ảnh · 11.902 hộp · mAP50 **0.811**) — 12 lớp:
 
-Phủ **7 bộ phận** PPE. Dây đai an toàn, đồng phục, quần phản quang, mặt nạ hàn,
-mặt nạ phòng độc chưa có lớp — hệ thống bỏ qua yêu cầu đó thay vì báo sai.
+`helmet`, `gloves`, `vest`, `boots`, `goggles`, `Person`, `no_helmet`,
+`no_goggle`, `no_gloves`, `no_boots`, `forklift`, `no_vest`
+
+Phủ **5 bộ phận** PPE, gồm lớp âm tính cho cả mũ, áo, găng, giày, kính.
+Dây đai an toàn, đồng phục, quần phản quang, mặt nạ hàn, mặt nạ phòng độc,
+khẩu trang, chụp tai chưa có lớp — hệ thống bỏ qua yêu cầu đó thay vì báo sai.
 Xem [Bộ phận nhận diện được](#bộ-phận-nhận-diện-được--và-bộ-phận-chưa) và
 `GET /api/coverage`.
+
+Trọng số không nằm trong repo (111 MB). Tải một lần:
+
+```bash
+.venv\Scripts\python.exe scripts\download_model.py
+```
 
 ---
 
@@ -228,22 +236,25 @@ curl -o baocao.xlsx "http://127.0.0.1:8000/api/reports/summary.xlsx?days=30"
 
 Đây là câu hỏi quan trọng nhất khi vận hành: **model biết những bộ phận nào?**
 
-Model `construction-ppe-yolov8` có 19 lớp, phủ **7 bộ phận** PPE:
+Model `ppe26.pt` có 12 lớp, phủ **5 bộ phận** PPE:
 
 | Bộ phận | Lớp dương | Lớp âm | Dùng được |
 |---|---|---|---|
-| Mũ bảo hộ | `Hard_hat` | `No-Helmet` | ✅ |
-| Áo phản quang | `Vest` | `No-Vest` | ✅ |
-| Găng tay | `Glove` | `No-Glove` | ✅ |
-| Giày bảo hộ | `Boots` | `No-Boots` | ✅ |
-| Khẩu trang | `Mask` | `No-Mask` | ✅ |
-| Kính bảo hộ | `Glass` | `No-Glass` | ✅ |
-| Chụp tai | `Ear-Protection` | `No-Ear-Protection` | ✅ |
+| Mũ bảo hộ | `helmet` | `no_helmet` | ✅ |
+| Áo phản quang | `vest` | `no_vest` | ✅ |
+| Găng tay | `gloves` | `no_gloves` | ✅ |
+| Giày bảo hộ | `boots` | `no_boots` | ✅ |
+| Kính bảo hộ | `goggles` | `no_goggle` | ✅ |
+
+Thiết bị công trường đi kèm: `forklift` → `equipment:forklift` (không phải PPE
+cá nhân, không tham gia đánh giá vi phạm).
 
 **Chưa có lớp trong model** (hệ thống tự bỏ qua yêu cầu, không báo sai):
 
 | Bộ phận | Trạng thái |
 |---|---|
+| Khẩu trang | ❌ chưa có lớp |
+| Chụp tai | ❌ chưa có lớp |
 | Dây đai an toàn | ❌ chưa có lớp |
 | Đồng phục bảo hộ dài tay | ❌ chưa có lớp |
 | Quần phản quang | ❌ chưa có lớp |
@@ -260,6 +271,17 @@ Xem trực tiếp trên dashboard, khối **Bộ phận nhận diện được**
 ```bash
 curl http://127.0.0.1:8000/api/coverage
 ```
+
+### Vì sao bỏ model 19 lớp cũ
+
+Model `construction-ppe-yolov8` (19 lớp) phủ 7 bộ phận nhưng **không có lớp âm
+tính cho áo phản quang ở dữ liệu thật**: trên video công trường thực tế, `no_vest`
+chỉ bắn ra 1 lần trong 40 khung, trong khi model mới bắn 38 lần cho cùng cảnh.
+Nó cũng mang 4 lớp thiết bị công trường không dùng tới (`Circular_Saw`,
+`Fire_Extinguisher`, `Fire_prevention_Net`, `Welding_Equipment`) và chiếm 21.5 MB
+thay vì 12 lớp gọn cho đúng bài toán.
+
+Model cũ vẫn dùng được: `python scripts/download_model.py --name old`.
 
 Muốn giám sát đủ 12 bộ phận: gán nhãn dataset và huấn luyện lại — xem mục
 [Huấn luyện lại](#huấn-luyện-lại-model-cho-công-trường-của-bạn).
@@ -328,6 +350,42 @@ Hiệu năng tham chiếu (RTX 3060, 640px, YOLOv8s):
 
 ## Huấn luyện lại model cho công trường của bạn
 
+### Cách 1 — dùng dataset Ultralytics Construction-PPE có sẵn
+
+Dataset công khai 1.000 ảnh, 12 lớp, CC BY 4.0. Script tự tải, giải nén và ghi
+`data.yaml` với đường dẫn tuyệt đối:
+
+```bash
+# Tải + giải nén dataset (~618 MB, chỉ lần đầu). Tự bỏ qua nếu đã có.
+.venv\Scripts\python.exe scripts\fetch_dataset.py
+
+# Huấn luyện trên RTX 3060: ~35 phút cho 120 epoch
+.venv\Scripts\python.exe scripts\train_ppe.py ^
+   --data dataset-public/construction-ppe/data.yaml ^
+   --model yolov8s.pt --epochs 120 --imgsz 640 --batch 16 ^
+   --name ppe26 --copy-to weights/ppe26.pt
+```
+
+Kết quả tham chiếu (RTX 3060, 120 epoch): **mAP50 0.811 · mAP50-95 0.555**,
+epoch tốt nhất là 94. Script in bảng mAP50 từng lớp và cảnh báo nếu lớp nào
+dưới 0.60.
+
+Huấn luyện lại trên chính ảnh camera của bạn: chuẩn bị dataset bằng cách 2,
+nhưng xuất theo bộ lớp `ultralytics` để giữ tương thích với trọng số đang chạy:
+
+```bash
+.venv\Scripts\python.exe scripts\prepare_dataset.py --root dataset --classes ultralytics
+```
+
+Huấn luyện lại trên chính ảnh camera của bạn: chuẩn bị dataset bằng cách 2,
+nhưng xuất theo bộ lớp `ultralytics` để giữ tương thích với trọng số đang chạy:
+
+```bash
+.venv\Scripts\python.exe scripts\prepare_dataset.py --root dataset --classes ultralytics
+```
+
+### Cách 2 — bộ lớp đầy đủ 12 bộ phận PPE
+
 ```bash
 # 1. Tạo cấu trúc dataset + hướng dẫn gán nhãn
 .venv\Scripts\python.exe scripts\prepare_dataset.py --root dataset --classes full
@@ -340,11 +398,21 @@ Hiệu năng tham chiếu (RTX 3060, 640px, YOLOv8s):
 # 4. Khởi động lại server để nạp model mới
 ```
 
-`prepare_dataset.py` sinh 26 lớp gồm cả lớp âm tính (`No-Harness`, `No-Safety_Suit`,
+`--classes full` sinh 28 lớp gồm cả lớp âm tính (`No-Harness`, `No-Safety_Suit`,
 `No-Respirator`, `No-Welding_Mask`, `No-Hi_Vis_Pants`) và kèm `dataset/README.md`
-hướng dẫn cách vẽ hộp cho từng bộ phận.
+hướng dẫn cách vẽ hộp cho từng bộ phận. `--classes base` sinh 15 lớp gọn hơn.
 
 Mục tiêu: mAP50 > 0.80 cho `Worker`, `Hard_hat`, `Vest`; > 0.70 cho các lớp còn lại.
+
+### So sánh model trước khi đổi
+
+```bash
+.venv\Scripts\python.exe scripts\compare_models.py
+```
+
+Chạy cả hai model trên cùng khung hình video thật, in số người phát hiện, số
+box theo từng lớp và thời gian suy luận mỗi khung. Dùng khi không chắc model
+mới có tốt hơn trên cảnh của mình không.
 
 ---
 
@@ -371,7 +439,7 @@ ppe/
 │   ├── api.py          FastAPI, SSE, MJPEG, báo cáo
 │   └── main.py         điểm vào, CLI
 ├── static/index.html   dashboard
-├── scripts/            selftest, download_model, cleanup,
+├── scripts/            selftest, download_model, cleanup, compare_models,
 │                       prepare_dataset, train_ppe, install_service.ps1
 ├── weights/            trọng số YOLO
 ├── assets/             ảnh/video mẫu

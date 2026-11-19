@@ -52,6 +52,31 @@ FULL_CLASSES = BASE_CLASSES + [
     "Welding_Equipment",   # 27 thiet bi han
 ]
 
+# Trung khop voi dataset Ultralytics Construction-PPE (11/2026, CC BY 4.0).
+# Dung khi muon huan luyen lai tu chinh anh cong truong cua minh ma van giu
+# tuong thich voi trong so dang chay trong he thong.
+#   python scripts/prepare_dataset.py --root dataset --classes ultralytics
+ULTRALYTICS_CLASSES = [
+    "helmet",     # 0  mu bao ho
+    "gloves",     # 1  gang tay
+    "vest",       # 2  ao phan quang
+    "boots",      # 3  giay bao ho
+    "goggles",    # 4  kinh bao ho
+    "Person",     # 5  nguoi
+    "no_helmet",  # 6  vung dau khong mu
+    "no_goggle",  # 7  vung mat khong kinh
+    "no_gloves",  # 8  ban tay khong gang
+    "no_boots",   # 9  ban chan khong giay bao ho
+    "forklift",   # 10 xe nang (thiet bi cong truong)
+    "no_vest",    # 11 than tren khong ao phan quang
+]
+
+CLASS_SETS = {
+    "base": BASE_CLASSES,
+    "full": FULL_CLASSES,
+    "ultralytics": ULTRALYTICS_CLASSES,
+}
+
 GUIDE = """# Hướng dẫn gán nhãn dataset PPE
 
 ## Nguyên tắc quan trọng nhất
@@ -134,11 +159,11 @@ nguy hiểm hơn báo nhầm ba lần.
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default="dataset")
-    ap.add_argument("--classes", choices=["base", "full"], default="full")
+    ap.add_argument("--classes", choices=list(CLASS_SETS), default="full")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
-    classes = BASE_CLASSES if args.classes == "base" else FULL_CLASSES
+    classes = CLASS_SETS[args.classes]
 
     for split in ("train", "val", "test"):
         (root / "images" / split).mkdir(parents=True, exist_ok=True)

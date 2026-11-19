@@ -31,3 +31,14 @@ Thumbs.db
 test_*.yaml
 server*.log
 
+
+# dataset tai ve (618 MB, dung scripts/fetch_dataset.py)
+dataset_src/
+dataset-public/
+
+
+# trong so goc cua Ultralytics tu tai khi huan luyen
+yolov8*.pt
+yolo11*.pt
+yolo26*.pt
+

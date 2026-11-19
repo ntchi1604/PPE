@@ -7,6 +7,12 @@ import sys
 
 import requests
 
+# Console Windows mac dinh cp1252: ep UTF-8 de in duoc nhan tieng Viet
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, OSError):
+    pass
+
 B = "http://127.0.0.1:8000"
 
 

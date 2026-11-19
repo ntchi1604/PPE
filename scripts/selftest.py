@@ -55,10 +55,19 @@ def check_cuda() -> bool:
     return True
 
 
+def model_path() -> "Path":
+    """Doi tuong tro toi trong so dang cau hinh trong config.yaml."""
+    from app.config import Config
+
+    rel = Config().get("model.weights", "weights/ppe26.pt")
+    p = Path(rel)
+    return p if p.is_absolute() else ROOT / p
+
+
 def check_model() -> bool:
-    weights = ROOT / "weights" / "ppe_yolov8.pt"
+    weights = model_path()
     if not weights.exists():
-        line(BAD, f"Thiếu trọng số: {weights}")
+        line(BAD, f"Thiếu trọng số: {weights.name}  ({weights.parent})")
         line("      ", "Chạy: python scripts/download_model.py")
         return False
     line(OK, f"Trọng số {weights.name} ({weights.stat().st_size / 1e6:.1f} MB)")
@@ -83,7 +92,7 @@ def run_inference() -> bool:
         return False
 
     try:
-        det = PPEDetector(ROOT / "weights" / "ppe_yolov8.pt")
+        det = PPEDetector(model_path())
     except Exception as exc:
         line(BAD, f"Không nạp được model: {exc}")
         return False

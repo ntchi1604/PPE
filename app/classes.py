@@ -87,6 +87,9 @@ ALIASES: dict[str, str] = {
     "No-Glass": "no_goggles",
     "No_Glass": "no_goggles",
     "no_goggles": "no_goggles",
+    "no_goggle": "no_goggles",
+    "No-Goggle": "no_goggles",
+    "No_Goggle": "no_goggles",
     "No-Ear-Protection": "no_ear",
     "No_Ear_Protection": "no_ear",
     "no_ear": "no_ear",
@@ -106,6 +109,8 @@ ALIASES: dict[str, str] = {
     "Fire_Extinguisher": "equipment:extinguisher",
     "Fire_prevention_Net": "equipment:fire_net",
     "Welding_Equipment": "equipment:welder",
+    "forklift": "equipment:forklift",
+    "Forklift": "equipment:forklift",
 }
 
 # Vung co the tren bbox nguoi (ti le chieu cao, tinh tu dinh dau)
@@ -161,6 +166,7 @@ EQUIPMENT_LABELS_VI: dict[str, str] = {
     "equipment:extinguisher": "Bình chữa cháy",
     "equipment:fire_net": "Lưới chống cháy",
     "equipment:welder": "Thiết bị hàn",
+    "equipment:forklift": "Xe nâng",
 }
 
 

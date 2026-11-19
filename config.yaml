@@ -30,7 +30,7 @@ retention:
   interval_sec: 1800
 
 model:
-  weights: weights/ppe_yolov8.pt
+  weights: weights/ppe26.pt
   device: auto        # auto | cpu | 0
   imgsz: 640
   half: true
