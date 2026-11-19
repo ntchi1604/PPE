@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>PPE · Giám sát an toàn công trường</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23ffd400'/><rect x='4' y='12' width='24' height='8' fill='%23101418'/></svg>">
+<style>
+  :root{
+    /* vật liệu: bê tông, thép, băng dính cảnh báo */
+    --void:#101418;
+    --steel:#191f26;
+    --steel2:#212a33;
+    --steel3:#2b343e;
+    --edge:#2c3641;
+    --edge2:#3c4854;
+    --ink:#e5eaef;
+    --mid:#94a1ae;
+    --low:#63707c;
+    --hivis:#ffd400;
+    --hazard:#e8392a;
+    --clear:#33c27f;
+    --r:3px;
+    --fdata:Bahnschrift,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --fui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--void);color:var(--ink);
+    font:13px/1.5 var(--fui);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;cursor:pointer}
+  a{color:inherit}
+  code{font-family:var(--fdata);font-size:11.5px;background:#0c1014;
+    border:1px solid var(--edge);border-radius:2px;padding:0 4px}
+  :focus-visible{outline:2px solid var(--hivis);outline-offset:1px}
+
+  /* ---- băng dính cảnh báo: dấu hiệu duy nhất của trang ---- */
+  .strip{
+    height:6px;
+    background:repeating-linear-gradient(115deg,var(--hivis) 0 12px,#0d1115 12px 24px);
+  }
+
+  /* ---------- thanh trên ---------- */
+  .top{
+    position:sticky;top:0;z-index:40;
+    display:flex;align-items:center;gap:14px;
+    padding:10px 18px;border-bottom:1px solid var(--edge);
+    background:#141a20;
+  }
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .plate{
+    width:34px;height:34px;display:grid;place-items:center;
+    background:var(--hivis);color:#141a20;border-radius:2px;
+    font:700 12px/1 var(--fdata);letter-spacing:.5px;
+  }
+  .brand b{font-size:14px;font-weight:600;letter-spacing:-.1px}
+  .brand span{display:block;font-size:11px;color:var(--low);font-weight:400}
+  .grow{flex:1}
+  .link-state{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mid)}
+  .lamp{width:8px;height:8px;border-radius:50%;background:var(--clear);
+    box-shadow:0 0 0 0 rgba(51,194,127,.55);animation:lamp 2.6s infinite}
+  .lamp.off{background:var(--hazard);animation:none}
+  @keyframes lamp{
+    0%{box-shadow:0 0 0 0 rgba(51,194,127,.5)}
+    70%{box-shadow:0 0 0 6px rgba(51,194,127,0)}
+    100%{box-shadow:0 0 0 0 rgba(51,194,127,0)}
+  }
+  .clock{font-family:var(--fdata);font-size:12.5px;color:var(--mid);
+    font-variant-numeric:tabular-nums;letter-spacing:.3px}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--steel2);border:1px solid var(--edge2);color:var(--ink);
+    padding:6px 12px;border-radius:var(--r);font-size:12.5px;font-weight:500;
+  }
+  .btn:hover{background:var(--steel3)}
+  .btn.primary{background:var(--hivis);border-color:var(--hivis);color:#141a20;font-weight:600}
+  .btn.primary:hover{background:#ffdf3d}
+  .btn.plain{background:transparent}
+  .btn.sm{padding:3px 9px;font-size:11.5px}
+
+  .seg{display:inline-flex;border:1px solid var(--edge2);border-radius:var(--r);overflow:hidden}
+  .seg button{background:transparent;border:0;border-right:1px solid var(--edge);
+    padding:6px 12px;font-size:12px;color:var(--mid);font-weight:500}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--steel3);color:var(--ink);box-shadow:inset 0 -2px 0 var(--hivis)}
+  .seg button:hover{color:var(--ink)}
+
+  main{max-width:1680px;margin:0 auto;padding:18px}
+
+  /* ---------- số liệu đầu trang ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--edge);border:1px solid var(--edge);border-radius:var(--r);
+    overflow:hidden;margin-bottom:18px}
+  .kpi{background:var(--steel);padding:13px 16px 14px;position:relative}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--low)}
+  .kpi.bad::before{background:var(--hazard)}
+  .kpi.warn::before{background:var(--hivis)}
+  .kpi.ok::before{background:var(--clear)}
+  .kpi .lab{font-size:11.5px;color:var(--mid)}
+  .kpi .val{font-family:var(--fdata);font-size:38px;line-height:1;font-weight:600;
+    letter-spacing:-1px;font-variant-numeric:tabular-nums;margin-top:5px}
+  .kpi .val i{font:500 18px/1 var(--fdata);color:var(--low);font-style:normal;letter-spacing:0}
+  .kpi .sub{font-size:11px;color:var(--low);margin-top:4px}
+
+  /* ---------- bố cục hai cột: hình ảnh lớn, sổ ghi bên phải ---------- */
+  .split{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+  @media (max-width:1180px){
+    .split{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+  }
+
+  .sec{margin-bottom:18px}
+  .sec > h2{
+    display:flex;align-items:center;gap:8px;
+    font-size:13.5px;font-weight:600;letter-spacing:-.1px;
+    margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid var(--edge);
+  }
+  .sec > h2::before{content:"";width:8px;height:8px;background:var(--hivis);flex:0 0 auto}
+  .sec > h2 .n{margin-left:auto;font-family:var(--fdata);font-size:11.5px;
+    color:var(--low);font-variant-numeric:tabular-nums;font-weight:500}
+  .sec > h2 .act{margin-left:auto;display:flex;gap:6px}
+
+  /* ---------- camera ---------- */
+  .cams{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px}
+  .cam{border:1px solid var(--edge);border-radius:var(--r);overflow:hidden;background:var(--steel)}
+  .cam:hover{border-color:var(--edge2)}
+  .cam .view{position:relative;aspect-ratio:16/9;background:#05070a;overflow:hidden;cursor:zoom-in}
+  .cam .view img{width:100%;height:100%;object-fit:cover;display:block}
+  .cam .tag{position:absolute;top:8px;left:8px;display:flex;align-items:center;gap:6px;
+    background:#0b0f13;border:1px solid rgba(255,255,255,.12);border-radius:2px;
+    padding:2px 7px;font-size:11px;font-weight:600;max-width:70%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cam .live{position:absolute;top:8px;right:8px;background:var(--hivis);color:#141a20;
+    font:700 10px/1.6 var(--fdata);letter-spacing:.6px;padding:0 7px;border-radius:2px}
+  .cam .metric{position:absolute;bottom:8px;left:8px;display:flex;gap:5px;flex-wrap:wrap}
+  .cam .metric span{background:#0b0f13;border:1px solid rgba(255,255,255,.1);
+    border-radius:2px;padding:2px 6px;font-family:var(--fdata);font-size:10.5px;
+    color:#c3cdd6;font-variant-numeric:tabular-nums}
+  .cam .foot{display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border-top:1px solid var(--edge)}
+  .cam .foot .nm{font-size:12.5px;font-weight:600}
+  .cam .foot .zn{font-size:11px;color:var(--low);font-family:var(--fdata)}
+  .cam .foot .btn{margin-left:auto}
+  .dead{display:grid;place-items:center;height:100%;gap:6px;color:var(--low);font-size:12px}
+  .dead b{color:var(--hazard);font-size:16px;font-weight:600}
+
+  /* ---------- phiếu trống ---------- */
+  .none-box{border:1px dashed var(--edge2);border-radius:var(--r);
+    padding:26px 18px;text-align:center;color:var(--mid);font-size:12.5px;line-height:1.7}
+  .none-box b{display:block;color:var(--ink);font-size:13.5px;font-weight:600;margin-bottom:3px}
+
+  /* ---------- sổ vi phạm ---------- */
+  .rail{border:1px solid var(--edge);border-radius:var(--r);background:var(--steel);
+    display:flex;flex-direction:column;overflow:hidden}
+  .rail .rhead{display:flex;align-items:center;gap:8px;padding:9px 12px;
+    border-bottom:1px solid var(--edge);background:var(--steel2)}
+  .rail .rhead h2{margin:0;font-size:13px;font-weight:600}
+  .rail .rhead .n{font-family:var(--fdata);font-size:11.5px;color:var(--low);
+    font-variant-numeric:tabular-nums}
+  .rail .rhead label{margin-left:auto;display:flex;align-items:center;gap:5px;
+    font-size:11.5px;color:var(--mid);cursor:pointer}
+  .rail .rhead input{accent-color:var(--hivis);margin:0}
+  .ledger{max-height:calc(100vh - 300px);min-height:180px;overflow:auto}
+
+  .row{display:grid;grid-template-columns:74px 1fr;gap:10px;
+    padding:9px 12px;border-bottom:1px solid #232c35;align-items:start}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:var(--steel2)}
+  .row .shot{position:relative;aspect-ratio:4/3;border-radius:2px;overflow:hidden;
+    background:#0a0e12 center/cover no-repeat;border:1px solid var(--edge2)}
+  .row .shot .play{position:absolute;inset:auto 0 0 0;background:rgba(5,8,11,.82);
+    font:600 9.5px/1.7 var(--fdata);text-align:center;color:var(--hivis);letter-spacing:.4px}
+  .row .meta{min-width:0}
+  .row .l1{display:flex;align-items:baseline;gap:7px}
+  .row .l1 .camn{font-family:var(--fdata);font-size:11.5px;color:var(--mid);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .l1 .tm{margin-left:auto;font-family:var(--fdata);font-size:11px;color:var(--low);
+    font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .row .items{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+  .chip{font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:2px;
+    background:rgba(232,57,42,.14);color:#ff8a7d;border:1px solid rgba(232,57,42,.3)}
+  .chip.done{background:rgba(51,194,127,.12);color:#63d5a2;border-color:rgba(51,194,127,.28)}
+  .row .act{margin-top:6px;display:flex;gap:6px;align-items:center}
+  .row .act .btn.sm{padding:2px 8px}
+
+  /* ---------- thanh phân bố ---------- */
+  .bars{border:1px solid var(--edge);border-radius:var(--r);background:var(--steel);
+    padding:12px 14px;display:grid;gap:9px}
+  .bar{display:grid;grid-template-columns:132px 1fr 46px;gap:10px;align-items:center;font-size:12px}
+  .bar .lb{color:var(--mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar .tk{height:8px;background:#0b0f13;border:1px solid #161c22;border-radius:2px;overflow:hidden}
+  .bar .fl{height:100%;background:var(--hivis);transition:width .45s cubic-bezier(.4,0,.2,1)}
+  .bar .nn{text-align:right;font-family:var(--fdata);font-size:12.5px;
+    font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* ---------- độ phủ nhận diện ---------- */
+  .panel{border:1px solid var(--edge);border-radius:var(--r);background:var(--steel)}
+  .panel .ph{display:flex;align-items:center;gap:8px;padding:9px 12px;
+    border-bottom:1px solid var(--edge);background:var(--steel2)}
+  .panel .ph h2{margin:0;font-size:13px;font-weight:600}
+  .panel .ph .n{margin-left:auto;font-family:var(--fdata);font-size:11.5px;color:var(--low)}
+  .cov{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--edge)}
+  .cov .it{display:flex;align-items:center;gap:8px;padding:7px 10px;
+    background:var(--steel);font-size:12px;position:relative}
+  .cov .it::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--low)}
+  .cov .full::before{background:var(--clear)}
+  .cov .negative_only::before,.cov .positive_only::before{background:var(--hivis)}
+  .cov .it .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cov .it .lv{font-family:var(--fdata);font-size:10px;color:var(--low);
+    letter-spacing:.3px;white-space:nowrap}
+  .cov .it.on .lv{color:var(--mid)}
+  .cov .it.off{opacity:.5}
+  .note{padding:10px 12px;border-top:1px solid var(--edge);font-size:11.5px;
+    color:var(--low);line-height:1.65}
+  .note b{color:var(--mid)}
+
+  /* ---------- lưu trữ ---------- */
+  .ret{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--edge)}
+  .ret div{background:var(--steel);padding:9px 12px}
+  .ret b{display:block;font-family:var(--fdata);font-size:17px;font-weight:600;
+    font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .ret span{font-size:11px;color:var(--low)}
+  .reports{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;
+    border-top:1px solid var(--edge);background:var(--steel2)}
+
+  /* ---------- bảng ---------- */
+  .tbl{border:1px solid var(--edge);border-radius:var(--r);background:var(--steel);overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #232c35;font-size:12.5px}
+  th{font-size:11px;color:var(--mid);font-weight:600;background:var(--steel2);
+    position:sticky;top:0;z-index:1;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--steel2)}
+  td.num,td.t{font-family:var(--fdata);font-variant-numeric:tabular-nums;color:var(--mid)}
+  .st{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600}
+  .st .d{width:6px;height:6px;border-radius:50%}
+  .st.on{color:var(--clear)} .st.on .d{background:var(--clear)}
+  .st.off{color:var(--hazard)} .st.off .d{background:var(--hazard)}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;background:rgba(6,9,12,.78);display:none;
+    place-items:center;z-index:100;padding:18px;overflow:auto}
+  .modal.on{display:grid}
+  .sheet{background:var(--steel);border:1px solid var(--edge2);border-radius:var(--r);
+    width:min(520px,100%);box-shadow:0 26px 60px rgba(0,0,0,.65)}
+  .sheet .sh{padding:5px 0 0}
+  .sheet .sh .strip{height:4px}
+  .sheet .body{padding:18px}
+  .sheet h3{margin:0 0 14px;font-size:15px;font-weight:600}
+  .field{margin-bottom:11px}
+  .field label{display:block;font-size:11.5px;color:var(--mid);margin-bottom:4px}
+  .field input,.field select{
+    width:100%;background:#0d1216;border:1px solid var(--edge2);color:var(--ink);
+    border-radius:var(--r);padding:8px 11px;font:inherit;font-size:13px;outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:var(--hivis)}
+  .hint{font-size:11.5px;color:var(--low);line-height:1.65;margin:-4px 0 12px}
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .err{color:#ff8a7d;font-size:12px;margin-top:8px;min-height:16px}
+
+  /* ---------- thông báo ---------- */
+  .toasts{position:fixed;right:16px;bottom:16px;z-index:200;display:grid;gap:8px;max-width:340px}
+  .toast{background:var(--steel2);border:1px solid var(--edge2);border-left:3px solid var(--hazard);
+    border-radius:var(--r);padding:9px 12px;font-size:12.5px;cursor:pointer;
+    animation:slide .2s ease}
+  .toast b{display:block;font-size:12px;margin-bottom:1px}
+  .toast small{color:var(--mid);font-family:var(--fdata);font-size:11px}
+  @keyframes slide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media (max-width:760px){
+    main{padding:12px}
+    .top{padding:8px 12px;gap:9px;flex-wrap:wrap}
+    .clock,.brand span{display:none}
+    .cams{grid-template-columns:1fr}
+    .kpi .val{font-size:30px}
+    .cov,.ret{grid-template-columns:1fr}
+    .ledger{max-height:420px}
+  }
+</style>
+</head>
+<body>
+<div class="strip"></div>
+
+<header class="top">
+  <div class="brand">
+    <div class="plate">PPE</div>
+    <div><b>Giám sát an toàn</b><span>Công trường xây dựng</span></div>
+  </div>
+  <div class="link-state"><span class="lamp" id="dot"></span><span id="link-txt">Đang kết nối</span></div>
+  <div class="grow"></div>
+  <div class="seg" id="range">
+    <button data-h="24" class="on">24 giờ</button>
+    <button data-h="168">7 ngày</button>
+    <button data-h="720">30 ngày</button>
+  </div>
+  <div class="clock" id="clock"></div>
+  <button class="btn plain" id="btn-refresh">Làm mới</button>
+  <button class="btn primary" id="btn-add">Thêm camera</button>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="split">
+    <div>
+      <section class="sec">
+        <h2>Camera trực tiếp <span class="n" id="cam-count">0</span></h2>
+        <div class="cams" id="cams"></div>
+      </section>
+
+      <section class="sec">
+        <h2>Thiếu thiết bị theo bộ phận</h2>
+        <div class="bars" id="bars"></div>
+      </section>
+
+      <section class="sec">
+        <h2>Trạng thái camera</h2>
+        <div class="tbl">
+          <table>
+            <thead><tr>
+              <th>Camera</th><th>Nguồn</th><th>Khu vực</th>
+              <th style="width:76px">FPS</th><th style="width:86px">Số người</th>
+              <th style="width:120px">Kết nối</th><th style="width:70px"></th>
+            </tr></thead>
+            <tbody id="camstatus"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <aside class="split-rail" style="display:grid;gap:18px">
+      <section class="rail">
+        <div class="rhead">
+          <h2>Vi phạm gần đây</h2>
+          <span class="n" id="vio-count">0</span>
+          <label><input type="checkbox" id="unack-only"> Chờ xử lý</label>
+        </div>
+        <div class="ledger" id="vios"></div>
+      </section>
+
+      <section class="panel">
+        <div class="ph"><h2>Bộ phận nhận diện được</h2><span class="n" id="cov-count">0</span></div>
+        <div class="cov" id="coverage"></div>
+      </section>
+
+      <section class="panel">
+        <div class="ph"><h2>Lưu trữ và báo cáo</h2></div>
+        <div class="ret" id="retention"></div>
+        <div class="reports">
+          <a class="btn sm" href="/api/reports/report.html?days=7" target="_blank">Báo cáo HTML</a>
+          <a class="btn sm" href="/api/reports/summary.xlsx?days=7">Excel</a>
+          <a class="btn sm" href="/api/reports/violations.csv?days=7">CSV</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="sec" style="margin-top:18px">
+    <h2>Nhật ký vi phạm <span class="n" id="log-count">0</span></h2>
+    <div class="tbl" style="max-height:460px">
+      <table>
+        <thead><tr>
+          <th style="width:170px">Thời gian</th><th>Camera</th><th>Khu vực</th>
+          <th style="width:80px">Đối tượng</th><th>Thiếu</th>
+          <th style="width:96px">Độ tin cậy</th><th style="width:120px">Trạng thái</th>
+          <th style="width:110px"></th>
+        </tr></thead>
+        <tbody id="log"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sh"><div class="strip"></div></div>
+    <div class="body">
+      <h3>Thêm camera</h3>
+      <div class="field"><label>Mã camera</label>
+        <input id="f-id" placeholder="cam-cong-truong" autocomplete="off"></div>
+      <div class="field"><label>Tên hiển thị</label>
+        <input id="f-name" placeholder="Cổng công trường" autocomplete="off"></div>
+      <div class="field"><label>Nguồn hình</label>
+        <input id="f-source" placeholder="rtsp://user:pass@192.168.1.50:554/stream1" autocomplete="off"></div>
+      <p class="hint">RTSP <code>rtsp://...</code> · Webcam <code>0</code> ·
+        Tệp video <code>file:assets/video.mp4</code> · Demo <code>demo:assets/demo_site.jpg</code></p>
+      <div class="field"><label>Khu vực</label><select id="f-zone"></select></div>
+      <div class="err" id="f-err"></div>
+      <div class="actions">
+        <button class="btn plain" id="btn-cancel">Hủy</button>
+        <button class="btn primary" id="btn-save">Thêm camera</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="login">
+  <div class="sheet">
+    <div class="sh"><div class="strip"></div></div>
+    <div class="body">
+      <h3>Đăng nhập</h3>
+      <div class="field"><label>Tên đăng nhập</label>
+        <input id="l-user" autocomplete="username"></div>
+      <div class="field"><label>Mật khẩu</label>
+        <input id="l-pass" type="password" autocomplete="current-password"></div>
+      <div class="err" id="l-err"></div>
+      <div class="actions"><button class="btn primary" id="l-go">Đăng nhập</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = (p, o) => fetch(p, o).then(async r => {
+  if (r.status === 401) { $('#login').classList.add('on'); throw new Error('Cần đăng nhập'); }
+  if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+  return r.headers.get('content-type')?.includes('json') ? r.json() : r.text();
+});
+
+let HOURS = 24;
+let ZONES = {};
+const VN = {
+  helmet:'Mũ bảo hộ', vest:'Áo phản quang', gloves:'Găng tay',
+  boots:'Giày bảo hộ', mask:'Khẩu trang', goggles:'Kính bảo hộ',
+  ear:'Chụp tai', harness:'Dây đai an toàn', suit:'Đồng phục bảo hộ',
+  respirator:'Mặt nạ phòng độc', welding_mask:'Mặt nạ hàn',
+  hi_vis_pants:'Quần phản quang'
+};
+const LEVEL_VI = {
+  full:'đầy đủ', negative_only:'chỉ báo thiếu',
+  positive_only:'chỉ báo có', none:'chưa có lớp'
+};
+const esc = s => String(s ?? '').replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtTime = t => new Date(t*1000).toLocaleTimeString('vi-VN',
+  {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const fmtFull = t => new Date(t*1000).toLocaleString('vi-VN',
+  {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const num = n => (n ?? 0).toLocaleString('vi-VN');
+
+/* ---------- đồng hồ ---------- */
+setInterval(() => {
+  $('#clock').textContent = new Date().toLocaleString('vi-VN', {
+    weekday:'short', day:'2-digit', month:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  });
+}, 1000);
+
+/* ---------- cấu hình khu vực ---------- */
+async function loadConfig() {
+  try {
+    const cfg = await api('/api/config');
+    ZONES = cfg.zones || {};
+  } catch (e) { /* giữ nguyên nhãn thô */ }
+}
+const zoneName = z => (ZONES[z] && ZONES[z].name) || z || '—';
+
+/* ---------- độ phủ nhận diện ---------- */
+async function loadCoverage() {
+  let c;
+  try { c = await api('/api/coverage'); } catch (e) { return; }
+  if (!c.ok) {
+    $('#coverage').innerHTML = `<div class="note">Chưa nạp model nhận diện.</div>`;
+    return;
+  }
+  $('#cov-count').textContent = `${c.summary.full + c.summary.partial}/${c.summary.total}`;
+  $('#coverage').innerHTML = c.items.map(it => `
+    <div class="it ${esc(it.level)}${it.usable ? ' on' : ' off'}"
+         title="${esc(it.item)} · vùng ${esc(it.region)}">
+      <span class="nm">${esc(it.label_vi)}</span>
+      <span class="lv">${LEVEL_VI[it.level] || esc(it.level)}</span>
+    </div>`).join('') + (c.missing_items.length ? `
+      <div class="note" style="grid-column:1/-1">
+        <b>Chưa giám sát:</b> ${c.missing_labels.map(esc).join(', ')}.
+        Model hiện tại không có lớp cho các bộ phận này, yêu cầu được bỏ qua thay vì báo sai.
+        Thêm lớp: <code>prepare_dataset.py</code> rồi <code>train_ppe.py</code>.
+      </div>` : '');
+}
+
+/* ---------- lưu trữ ---------- */
+async function loadRetention() {
+  let r;
+  try { r = await api('/api/retention'); } catch (e) { return; }
+  const ev = r.evidence || {};
+  $('#retention').innerHTML = `
+    <div><b>${num(r.violations)}</b><span>Bản ghi vi phạm</span></div>
+    <div><b>${r.db_size_mb ?? 0} MB</b><span>Cơ sở dữ liệu</span></div>
+    <div><b>${ev.files ?? 0}</b><span>Tệp bằng chứng</span></div>
+    <div><b>${ev.gb ?? 0} GB</b><span>Ảnh và clip</span></div>
+    <div><b>${r.disk_free_gb ?? 0} GB</b><span>Ổ đĩa trống</span></div>
+    <div><b>${r.evidence_days ?? 0} ngày</b><span>Thời gian giữ</span></div>`;
+}
+
+/* ---------- số liệu ---------- */
+async function loadStats() {
+  let s;
+  try { s = await api(`/api/stats?hours=${HOURS}`); } catch (e) { return; }
+  const cams = s.cameras || [];
+  const online = cams.filter(c => c.online).length;
+  const persons = cams.reduce((a, c) => a + (c.persons || 0), 0);
+  const total = s.summary.total || 0;
+  const unack = s.summary.unack || 0;
+
+  $('#kpis').innerHTML = `
+    <div class="kpi bad"><div class="lab">Vi phạm</div>
+      <div class="val">${num(total)}</div><div class="sub">${HOURS} giờ qua</div></div>
+    <div class="kpi warn"><div class="lab">Chờ xử lý</div>
+      <div class="val">${num(unack)}</div><div class="sub">chưa xác nhận</div></div>
+    <div class="kpi ok"><div class="lab">Camera trực tuyến</div>
+      <div class="val">${online}<i>/${cams.length}</i></div><div class="sub">đang ghi hình</div></div>
+    <div class="kpi"><div class="lab">Người trong khung</div>
+      <div class="val">${num(persons)}</div><div class="sub">tổng các camera</div></div>`;
+
+  const items = Object.entries(s.by_item || {}).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...items.map(i => i[1]));
+  $('#bars').innerHTML = items.length ? items.map(([k, v]) => `
+    <div class="bar">
+      <div class="lb">${VN[k] || esc(k)}</div>
+      <div class="tk"><div class="fl" style="width:${Math.max(4, (v / max) * 100)}%"></div></div>
+      <div class="nn">${num(v)}</div>
+    </div>`).join('') : '<div class="none-box" style="border:0;padding:12px">Chưa có vi phạm trong khoảng này</div>';
+}
+
+/* ---------- camera ---------- */
+let camSignature = '';
+const pollers = new Map();
+
+function stopPollers() {
+  for (const p of pollers.values()) p.stopped = true;
+  pollers.clear();
+}
+
+/* Khung hình lấy qua /api/snapshot để không chặn sự kiện load của trang */
+function whenLoaded(fn) {
+  if (document.readyState === 'complete') fn();
+  else window.addEventListener('load', fn, { once: true });
+}
+
+function startPoller(camId, img) {
+  const state = { stopped: false, fails: 0 };
+  pollers.set(camId, state);
+  const tick = () => {
+    if (state.stopped) return;
+    const probe = new Image();
+    probe.onload = () => {
+      if (!state.stopped) { img.src = probe.src; state.fails = 0; }
+    };
+    probe.onerror = () => { state.fails += 1; };
+    probe.src = `/api/snapshot/${encodeURIComponent(camId)}?t=${Date.now()}`;
+    setTimeout(tick, state.fails > 3 ? 600 : 110);
+  };
+  whenLoaded(tick);
+}
+
+async function loadCameras() {
+  let cams;
+  try { cams = await api('/api/cameras'); } catch (e) { return; }
+  $('#cam-count').textContent = cams.length;
+
+  const sig = cams.map(c => `${c.id}|${c.name}|${c.online}|${c.zone}`).join('~');
+  if (sig === camSignature) {
+    for (const c of cams) {
+      const m = document.querySelector(`.metric[data-cam="${CSS.escape(c.id)}"]`);
+      if (m) m.innerHTML = `<span>${c.fps || 0} fps</span>
+        <span>${c.persons || 0} người</span>
+        <span>${c.alerts_5m || 0} cảnh báo</span>`;
+    }
+  } else {
+    camSignature = sig;
+    stopPollers();
+    renderCameras(cams);
+  }
+
+  $('#camstatus').innerHTML = cams.map(c => `
+    <tr>
+      <td><b>${esc(c.name)}</b><div class="t" style="font-size:11px;color:var(--low)">${esc(c.id)}</div></td>
+      <td class="t" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;
+        white-space:nowrap;font-size:11.5px">${esc(shortSrc(c.source))}</td>
+      <td>${esc(zoneName(c.zone))}</td>
+      <td class="num">${c.fps || 0}</td>
+      <td class="num">${c.persons || 0}</td>
+      <td><span class="st ${c.online ? 'on' : 'off'}"><span class="d"></span>${
+        c.online ? 'Trực tuyến' : 'Ngoại tuyến'}</span></td>
+      <td><button class="btn sm plain" onclick="delCam('${esc(c.id)}')">Xóa</button></td>
+    </tr>`).join('') || '<tr><td colspan="7" style="color:var(--low)">Chưa có camera</td></tr>';
+}
+
+function renderCameras(cams) {
+  const grid = $('#cams');
+  if (!cams.length) {
+    grid.innerHTML = `<div class="none-box" style="grid-column:1/-1">
+      <b>Chưa có camera nào</b>
+      Thêm nguồn RTSP, webcam hoặc tệp video bằng nút <b>Thêm camera</b>,
+      hoặc chạy <code>python run.py --demo</code> để xem bản mô phỏng.
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = cams.map(c => `
+    <div class="cam">
+      <div class="view" data-snap="${esc(c.id)}">
+        ${c.online
+          ? `<img alt="" data-stream="${esc(c.id)}">`
+          : `<div class="dead"><b>Mất kết nối</b><span>${esc(shortSrc(c.source))}</span></div>`}
+        <div class="tag"><span class="lamp ${c.online ? '' : 'off'}"></span>${esc(c.name)}</div>
+        ${c.online ? '<div class="live">LIVE</div>' : ''}
+        <div class="metric" data-cam="${esc(c.id)}">
+          <span>${c.fps || 0} fps</span>
+          <span>${c.persons || 0} người</span>
+          <span>${c.alerts_5m || 0} cảnh báo</span>
+        </div>
+      </div>
+      <div class="foot">
+        <div>
+          <div class="nm">${esc(c.name)}</div>
+          <div class="zn">${esc(zoneName(c.zone))} / ${esc(c.id)}</div>
+        </div>
+        <button class="btn sm plain" onclick="delCam('${esc(c.id)}')">Xóa</button>
+      </div>
+    </div>`).join('');
+
+  for (const c of cams) {
+    if (!c.online) continue;
+    const img = grid.querySelector(`img[data-stream="${CSS.escape(c.id)}"]`);
+    if (img) startPoller(c.id, img);
+  }
+
+  grid.querySelectorAll('.view').forEach(v => {
+    v.onclick = e => {
+      if (e.target.closest('button')) return;
+      window.open(`/api/snapshot/${encodeURIComponent(v.dataset.snap)}`, '_blank');
+    };
+  });
+}
+
+function shortSrc(s) {
+  s = s || '';
+  if (s.startsWith('demo:')) return 'demo / ' + s.split(/[\\/]/).pop();
+  if (s.startsWith('file:')) return 'tệp / ' + s.split(/[\\/]/).pop();
+  return s;
+}
+
+/* ---------- vi phạm ---------- */
+async function loadViolations() {
+  const unack = $('#unack-only').checked ? '&unack=true' : '';
+  let v;
+  try { v = await api(`/api/violations?limit=120${unack}`); } catch (e) { return; }
+  $('#vio-count').textContent = v.length;
+  $('#log-count').textContent = v.length;
+
+  $('#vios').innerHTML = v.slice(0, 40).map(x => {
+    const img = x.image ? '/' + esc(x.image) : '';
+    return `<div class="row">
+      <a class="shot" href="${img || '#'}" target="_blank"
+         style="background-image:url('${img}')"
+         ${x.clip ? `onclick="return playClip(event,'/${esc(x.clip)}','${fmtFull(x.ts)}')"` : ''}>
+        ${x.clip ? '<span class="play">XEM CLIP</span>' : ''}
+      </a>
+      <div class="meta">
+        <div class="l1">
+          <span class="camn">${esc(x.cam_id)} #${x.track_id}</span>
+          <span class="tm">${fmtTime(x.ts)}</span>
+        </div>
+        <div class="items">${x.missing.map(m =>
+          `<span class="chip">${VN[m] || esc(m)}</span>`).join('')}</div>
+        <div class="act">
+          ${x.acknowledged
+            ? '<span class="chip done">Đã xử lý</span>'
+            : `<button class="btn sm" onclick="ackVio(${x.id},this)">Xác nhận</button>`}
+          <span class="tm" style="margin-left:auto">${Math.round((x.confidence || 0) * 100)}%</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="none-box" style="border:0;margin:8px">
+      <b>Không có vi phạm</b>Hệ thống đang giám sát</div>`;
+
+  $('#log').innerHTML = v.map(x => `
+    <tr>
+      <td class="t">${fmtFull(x.ts)}</td>
+      <td>${esc(x.cam_id)}</td>
+      <td style="color:var(--mid)">${esc(zoneName(x.zone))}</td>
+      <td class="num">#${x.track_id}</td>
+      <td>${x.missing.map(m => `<span class="chip">${VN[m] || esc(m)}</span>`).join(' ')}</td>
+      <td class="num">${Math.round((x.confidence || 0) * 100)}%</td>
+      <td>${x.acknowledged
+        ? '<span class="st on"><span class="d"></span>Đã xử lý</span>'
+        : '<span class="st off"><span class="d"></span>Chờ xử lý</span>'}</td>
+      <td>${x.image ? `<a class="btn sm plain" href="/${esc(x.image)}" target="_blank">Ảnh</a>` : ''}
+          ${x.acknowledged ? '' :
+            `<button class="btn sm plain" onclick="ackVio(${x.id},this)">Xác nhận</button>`}</td>
+    </tr>`).join('') || '<tr><td colspan="8" style="color:var(--low)">Chưa có vi phạm</td></tr>';
+}
+
+async function ackVio(id, el) {
+  el.disabled = true;
+  try {
+    await api(`/api/violations/${id}/ack`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ by:'operator' })
+    });
+  } catch (e) { el.disabled = false; return; }
+  refresh();
+}
+
+function playClip(ev, url, caption) {
+  ev.preventDefault();
+  const box = document.createElement('div');
+  box.className = 'modal on';
+  box.style.zIndex = 200;
+  box.innerHTML = `<div class="sheet" style="width:min(900px,100%)">
+    <div class="sh"><div class="strip"></div></div>
+    <div class="body" style="padding:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <b style="font-size:13px">Bằng chứng / ${esc(caption)}</b>
+        <span style="flex:1"></span>
+        <a class="btn sm" href="${url}" download>Tải về</a>
+        <button class="btn sm plain" data-x>Đóng</button>
+      </div>
+      <video src="${url}" controls autoplay playsinline
+        style="width:100%;border-radius:2px;background:#000;max-height:72vh;display:block"></video>
+    </div></div>`;
+  box.querySelector('[data-x]').onclick = () => box.remove();
+  box.onclick = e => { if (e.target === box) box.remove(); };
+  document.body.appendChild(box);
+  return false;
+}
+
+async function delCam(id) {
+  if (!confirm(`Xóa camera ${id}? Việc này dừng luồng nhận diện của camera đó.`)) return;
+  try { await api(`/api/cameras/${encodeURIComponent(id)}`, { method:'DELETE' }); }
+  catch (e) { return; }
+  camSignature = '';
+  refresh();
+}
+
+/* ---------- SSE ---------- */
+function connectSSE() {
+  const es = new EventSource('/api/events/stream');
+  const up = () => {
+    $('#dot').classList.remove('off');
+    $('#link-txt').textContent = 'Trực tuyến';
+  };
+  const down = () => {
+    $('#dot').classList.add('off');
+    $('#link-txt').textContent = 'Mất kết nối';
+  };
+  es.addEventListener('ready', up);
+  es.onopen = up;
+  es.onerror = down;
+  es.addEventListener('ack', () => { loadViolations(); loadStats(); });
+  es.addEventListener('violation', e => {
+    toast(JSON.parse(e.data));
+    loadViolations();
+    loadStats();
+  });
+}
+
+function toast(d) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<b>Vi phạm / ${esc(d.cam_name || d.cam_id)}</b>
+    <small>#${d.track_id} · ${d.missing.map(m => VN[m] || m).join(', ')} · ${d.ts ? fmtTime(d.ts) : ''}</small>`;
+  el.onclick = () => { if (d.image_url) window.open(d.image_url, '_blank'); el.remove(); };
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 9000);
+}
+
+/* ---------- modal thêm camera ---------- */
+async function openModal() {
+  try { await loadConfig(); } catch (e) {}
+  $('#f-zone').innerHTML = Object.entries(ZONES).map(([k, v]) =>
+    `<option value="${esc(k)}">${esc(v.name || k)} — ${(v.required || []).map(x => VN[x] || x).join(', ')}</option>`
+  ).join('') || '<option value="default">Khu vực chung</option>';
+  $('#f-err').textContent = '';
+  $('#modal').classList.add('on');
+  $('#f-id').focus();
+}
+$('#btn-add').onclick = openModal;
+$('#btn-cancel').onclick = () => $('#modal').classList.remove('on');
+$('#modal').onclick = e => { if (e.target.id === 'modal') $('#modal').classList.remove('on'); };
+$('#btn-save').onclick = async () => {
+  const body = {
+    id: $('#f-id').value.trim(),
+    name: $('#f-name').value.trim() || $('#f-id').value.trim(),
+    source: $('#f-source').value.trim(),
+    zone: $('#f-zone').value,
+    enabled: true
+  };
+  if (!body.id || !body.source) {
+    $('#f-err').textContent = 'Cần nhập mã camera và nguồn hình.';
+    return;
+  }
+  try {
+    await api('/api/cameras', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    $('#f-err').textContent = 'Không thêm được: ' + e.message;
+    return;
+  }
+  $('#modal').classList.remove('on');
+  ['#f-id','#f-name','#f-source'].forEach(s => $(s).value = '');
+  camSignature = '';
+  refresh();
+};
+
+/* ---------- đăng nhập ---------- */
+$('#l-go').onclick = async () => {
+  const user = $('#l-user').value.trim();
+  const password = $('#l-pass').value;
+  try {
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user, password })
+    });
+    if (!r.ok) { $('#l-err').textContent = 'Sai tên đăng nhập hoặc mật khẩu.'; return; }
+  } catch (e) {
+    $('#l-err').textContent = 'Không kết nối được máy chủ.';
+    return;
+  }
+  $('#login').classList.remove('on');
+  $('#l-pass').value = '';
+  refresh();
+};
+$('#l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#l-go').click(); });
+
+/* ---------- khoảng thời gian + làm mới ---------- */
+$('#range').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  [...$('#range').children].forEach(x => x.classList.toggle('on', x === b));
+  HOURS = +b.dataset.h;
+  loadStats();
+};
+$('#unack-only').onchange = loadViolations;
+$('#btn-refresh').onclick = refresh;
+
+async function refresh() {
+  await loadConfig();
+  try {
+    await Promise.all([
+      loadCameras(), loadViolations(), loadStats(),
+      loadCoverage(), loadRetention()
+    ]);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+refresh();
+connectSSE();
+setInterval(loadStats, 8000);
+setInterval(loadCameras, 12000);
+setInterval(loadViolations, 12000);
+setInterval(loadRetention, 60000);
+</script>
+</body>
+</html>

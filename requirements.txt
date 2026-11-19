@@ -1,0 +1,13 @@
+ultralytics>=8.3
+opencv-python>=4.10
+numpy>=1.26
+torch>=2.2
+torchvision>=0.17
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+pyyaml>=6.0
+requests>=2.32
+paho-mqtt>=2.1
+python-multipart>=0.0.9
+openpyxl>=3.1

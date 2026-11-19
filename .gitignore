@@ -1,0 +1,33 @@
+# moi truong
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# du lieu sinh ra
+data/
+evidence/
+runs/
+reports/
+*.log
+
+# trong so (tai bang scripts/download_model.py)
+weights/*.pt
+weights/*.onnx
+weights/*.engine
+weights/*.part
+
+# video/tep nguoi dung tai len (nang)
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# he dieu hanh
+Thumbs.db
+.DS_Store
+
+# cau hinh test cuc bo (chua mat khau)
+test_*.yaml
+server*.log
+

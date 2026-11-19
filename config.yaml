@@ -1,0 +1,123 @@
+app:
+  host: 127.0.0.1
+  port: 8000
+  open_browser: true
+  demo: false
+  demo_image: assets/demo_site.jpg
+  clip_seconds: 6
+  data_dir: data
+  evidence_dir: evidence
+
+# Dang nhap dashboard. Tat = ai trong LAN cung vao duoc.
+# Bat khi mo cong ra ngoai (host: 0.0.0.0).
+auth:
+  enabled: false
+  session_hours: 12
+  allow_localhost: true        # may chu khong can dang nhap
+  users:
+    admin: "doi-mat-khau-nay"  # admin: toan quyen
+    viewer: "xem-thoi"         # viewer: chi doc
+
+# Don dep du lieu cu. Chay moi 30 phut trong nen.
+retention:
+  enabled: true
+  violation_days: 180          # giu ban ghi vi pham chua xu ly
+  evidence_days: 60            # giu anh + clip (nang nhat)
+  event_days: 30
+  keep_acknowledged: true      # ban ghi da xu ly giu lau hon
+  ack_days: 365
+  max_gb: 20                   # tran dung luong evidence, 0 = khong gioi han
+  interval_sec: 1800
+
+model:
+  weights: weights/ppe_yolov8.pt
+  device: auto        # auto | cpu | 0
+  imgsz: 640
+  half: true
+  conf_person: 0.35
+  conf_ppe: 0.25
+  iou: 0.5
+  max_det: 300
+  infer_stride: 2     # nhan dien moi N khung hinh
+
+camera:
+  width: 1280
+  height: 720
+  max_width: 1920     # ha do phan giai khung lon hon (4K -> 1920) truoc khi nhan dien
+  demo_speed: 1.0
+
+tracking:
+  iou_threshold: 0.30
+  max_age: 30
+  min_hits: 3
+
+rules:
+  confirm_frames: 12      # so khung hinh lien tiep de xac nhan vi pham
+  cooldown_sec: 180       # khong lap lai canh bao cho cung doi tuong
+  unknown_grace: 0
+  zones:
+    default:
+      name: Khu vực chung
+      required: [helmet, vest]
+    gate:
+      name: Cổng vào
+      required: [helmet, vest]
+    high_risk:
+      name: Khu nguy hiểm
+      required: [helmet, vest, gloves, boots, goggles]
+    height_work:
+      name: Làm việc trên cao
+      required: [helmet, vest, harness]
+    welding:
+      name: Khu hàn cắt
+      required: [helmet, vest, gloves, mask, goggles]
+    warehouse:
+      name: Kho vật liệu
+      required: [helmet, vest, boots]
+
+alerts:
+  cooldown_sec: 300
+  min_interval_sec: 1.0
+  telegram:
+    enabled: false
+    token: ""
+    chat_id: ""
+  webhook:
+    enabled: false
+    url: ""
+    headers: {}
+  mqtt:
+    enabled: false
+    host: localhost
+    port: 1883
+    topic: ppe/alerts
+    qos: 0
+    retain: false
+  email:
+    enabled: false
+    host: smtp.gmail.com
+    port: 587
+    tls: true
+    user: ""
+    password: ""
+    from: ""
+    to: []
+
+# Canh bao tai cho: loa IP hoac TTS tren may chu
+sounder:
+  enabled: false
+  mode: http_get            # http_get | http_post | local_tts | mqtt
+  url: "http://192.168.1.60/cgi-bin/audio?action=play"
+  method: GET
+  payload_key: text
+  extra: {}
+  cooldown_sec: 25
+  volume: 90
+  rate: 2                   # local_tts: -10..10, 2 la hoi nhanh
+
+# Camera khai bao san. Cung co the them qua dashboard hoac POST /api/cameras
+# camera IP:  source: rtsp://user:pass@192.168.1.50:554/Streaming/Channels/101
+# webcam:     source: "0"
+# tep video:  source: file:assets/video.mp4
+# demo:       source: demo:assets/demo_site.jpg
+cameras: []
