@@ -22,6 +22,8 @@ weights/*.part
 *.avi
 *.mov
 *.mkv
+!camera/
+!camera/**
 
 # he dieu hanh
 Thumbs.db
